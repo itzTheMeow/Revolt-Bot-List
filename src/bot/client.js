@@ -12,9 +12,7 @@ global.client = client;
 
 //-Events-//
 const eventsPath = path.join(__dirname, "events");
-const eventFiles = fs
-  .readdirSync(eventsPath)
-  .filter((file) => file.endsWith(".js"));
+const eventFiles = fs.readdirSync(eventsPath).filter((file) => file.endsWith(".js"));
 for (const file of eventFiles) {
   const filePath = path.join(eventsPath, file);
   const event = require(filePath);
@@ -29,8 +27,7 @@ const getFiles = (path) =>
 for (const cfile of getFiles("commands")) {
   const command = require(join(__dirname, "commands", `${cfile}`));
   client.commands.set(command.name, command);
-  if (command.aliases)
-    command.aliases.forEach((alias) => client.aliases.set(alias, command.name));
+  if (command.aliases) command.aliases.forEach((alias) => client.aliases.set(alias, command.name));
 }
 
 selfBot.on("ready", () => {
@@ -50,15 +47,20 @@ client.once("ready", () => {
       let set = db.now;
       let timeout = db.time;
       if (set - (Date.now() - timeout) <= 0) {
-        await client.api.post(`/channels/${db.channel}/messages`, {content: `<@${db.owner}>, reminder to vote for <@${db.message}>` }).catch(() => {});
+        await client.api
+          .post(`/channels/${db.channel}/messages`, {
+            content: `<@${db.owner}>, reminder to vote for <@${db.message}>`,
+          })
+          .catch(() => {});
         return await db.delete();
       }
     });
   }, 6000);
 });
 
-client.loginBot(config.bot.token);
+//todo: temp for testing
+/*client.loginBot(config.bot.token);
 selfBot.login({
   email: config.selfbot.email,
   password: config.selfbot.password,
-});
+});*/

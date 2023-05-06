@@ -10,8 +10,6 @@ const MongoStore = require("connect-mongo")(session);
 //-Webserver-//
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "/pages"));
 app.disable("x-powered-by");
 app.use(
   session({
@@ -22,46 +20,7 @@ app.use(
   })
 );
 app.use("/img", express.static(path.join(__dirname, "/static/img")));
-app.get("/css/main.scss", (req, res) => {
-  const originalCSS = fs.readFileSync(
-    path.join(__dirname, "/static/css/main.scss"),
-    "utf8"
-  );
-  var options = {};
-  const minifiedCSS = new CleanCSS(options).minify(originalCSS);
-  res.set("Content-Type", "text/css");
-  res.send(minifiedCSS.styles);
-});
-app.get("/css/navbar.scss", (req, res) => {
-  const originalCSS = fs.readFileSync(
-    path.join(__dirname, "/static/css/navbar.scss"),
-    "utf8"
-  );
-  var options = {};
-  const minifiedCSS = new CleanCSS(options).minify(originalCSS);
-  res.set("Content-Type", "text/css");
-  res.send(minifiedCSS.styles);
-});
-app.get("/css/botpage.scss", (req, res) => {
-  const originalCSS = fs.readFileSync(
-    path.join(__dirname, "/static/css/botpage.scss"),
-    "utf8"
-  );
-  var options = {};
-  const minifiedCSS = new CleanCSS(options).minify(originalCSS);
-  res.set("Content-Type", "text/css");
-  res.send(minifiedCSS.styles);
-});
-app.get("/css/panel.scss", (req, res) => {
-  const originalCSS = fs.readFileSync(
-    path.join(__dirname, "/static/css/panel.scss"),
-    "utf8"
-  );
-  var options = {};
-  const minifiedCSS = new CleanCSS(options).minify(originalCSS);
-  res.set("Content-Type", "text/css");
-  res.send(minifiedCSS.styles);
-});
+app.use(express.static(path.join(process.cwd(), "/site/dist")));
 
 app.get("/login", async function (req, res) {
   let userModel = require("../database/models/user");
@@ -88,11 +47,11 @@ app.post("/login", async (req, res) => {
         message: "There is already an on-going login request for this account.",
       });
     let code = generateLoginCode();
-     let request = await requestModel.create({
-       revoltId: req.body.revoltID,
-       verified: false,
-       code: code
-     })
+    let request = await requestModel.create({
+      revoltId: req.body.revoltID,
+      verified: false,
+      code: code,
+    });
     res.render("auth/confirm.ejs", {
       code,
       revoltId: req.body.revoltID,
@@ -179,19 +138,9 @@ app.get("/downloads", async (req, res) => {
   res.render("downloads", { user });
 });
 
-//-Routers-//
-const indexRouter = require("./routes/index.js");
-app.use("/", indexRouter);
-const panelRouter = require("./routes/panel.js");
-app.use("/panel", checkAuth, checkStaff, panelRouter);
-const apiRouter = require("./routes/api.js");
-app.use("/api", apiRouter);
-const botsRouter = require("./routes/bots.js");
-app.use("/bots", botsRouter);
-app.use("/bot", botsRouter);
-const usersRouter = require("./routes/users.js");
-app.use("/users", usersRouter);
-app.use("/user", usersRouter);
+app.get("*", (req, res) => {
+  res.sendFile(process.cwd() + "/site/dist/index.html");
+});
 
 app.listen(config.port, () => {
   console.info(`[INFO] Running on port ` + config.port);
@@ -200,18 +149,15 @@ app.listen(config.port, () => {
 function checkAuth(req, res, next) {
   if (req.session.userAccountId) {
     let model = require("../database/models/user.js");
-    model.findOne(
-      { revoltId: req.session.userAccountId },
-      (error, userAccount) => {
-        if (error) {
-          res.status(500).send(error);
-        } else if (userAccount) {
-          next();
-        } else {
-          res.redirect("/login");
-        }
+    model.findOne({ revoltId: req.session.userAccountId }, (error, userAccount) => {
+      if (error) {
+        res.status(500).send(error);
+      } else if (userAccount) {
+        next();
+      } else {
+        res.redirect("/login");
       }
-    );
+    });
   } else {
     res.redirect("/login");
   }
@@ -220,22 +166,19 @@ function checkAuth(req, res, next) {
 function checkStaff(req, res, next) {
   if (req.session.userAccountId) {
     let model = require("../database/models/user.js");
-    model.findOne(
-      { revoltId: req.session.userAccountId },
-      (error, userAccount) => {
-        if (error) {
-          res.status(500).send(error);
-        } else if (userAccount) {
-          if (userAccount.isStaff) {
-            next();
-          } else {
-            res.status(403).send("Forbidden");
-          }
+    model.findOne({ revoltId: req.session.userAccountId }, (error, userAccount) => {
+      if (error) {
+        res.status(500).send(error);
+      } else if (userAccount) {
+        if (userAccount.isStaff) {
+          next();
         } else {
-          res.redirect("/login");
+          res.status(403).send("Forbidden");
         }
+      } else {
+        res.redirect("/login");
       }
-    );
+    });
   } else {
     res.redirect("/login");
   }
@@ -251,10 +194,7 @@ function generateLoginCode() {
 
   for (let i = 0; i < 5; i++) {
     const index = Math.floor(Math.random() * code.length);
-    code =
-      code.slice(0, index) +
-      code.charAt(index).toUpperCase() +
-      code.slice(index + 1);
+    code = code.slice(0, index) + code.charAt(index).toUpperCase() + code.slice(index + 1);
   }
   return code;
 }

@@ -3,3 +3,5 @@ package-lock.json
 .env
 Revolt Bot List.code-workspace
 .backuper
+
+site/dist

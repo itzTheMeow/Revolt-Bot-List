@@ -1,5 +1,6 @@
-global.config = require("../config.js")
+global.config = require("../config.js");
 
-require("./bot/client.js")
-require("./database/connect.js")
-require("./server/app.js")
+require("./build.js");
+require("./bot/client.js");
+require("./database/connect.js");
+require("./server/app.js");
